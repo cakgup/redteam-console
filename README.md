@@ -77,7 +77,7 @@ Adapter ini hanya melakukan read-only probing sederhana untuk kebutuhan lab inte
 Masuk ke folder repo dari terminal Kali WSL, lalu:
 
 ```bash
-cd /mnt/c/Users/gufroni/Documents/GitHub/redteam-console
+cd /mnt/c/Users/user/Documents/GitHub/redteam-console
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
