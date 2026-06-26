@@ -24,6 +24,68 @@ function showToast(message) {
   showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
 }
 
+function requestRangePassword() {
+  const modal = $("#rangePasswordModal");
+  const input = $("#rangePasswordInput");
+  const confirmBtn = $("#confirmRangePasswordBtn");
+  const cancelBtn = $("#cancelRangePasswordBtn");
+  if (!modal || !input || !confirmBtn || !cancelBtn) {
+    return Promise.resolve(window.prompt("Masukkan password simpan ranges") || "");
+  }
+
+  return new Promise((resolve) => {
+    const cleanup = () => {
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+      input.value = "";
+      confirmBtn.removeEventListener("click", onConfirm);
+      cancelBtn.removeEventListener("click", onCancel);
+      modal.removeEventListener("click", onBackdrop);
+      input.removeEventListener("keydown", onKeydown);
+      document.removeEventListener("keydown", onEscape);
+    };
+
+    const onConfirm = () => {
+      const value = input.value;
+      cleanup();
+      resolve(value);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      resolve("");
+    };
+
+    const onBackdrop = (event) => {
+      if (event.target === modal) {
+        onCancel();
+      }
+    };
+
+    const onKeydown = (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        onConfirm();
+      }
+    };
+
+    const onEscape = (event) => {
+      if (event.key === "Escape") {
+        onCancel();
+      }
+    };
+
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+    confirmBtn.addEventListener("click", onConfirm);
+    cancelBtn.addEventListener("click", onCancel);
+    modal.addEventListener("click", onBackdrop);
+    input.addEventListener("keydown", onKeydown);
+    document.addEventListener("keydown", onEscape);
+    window.setTimeout(() => input.focus(), 0);
+  });
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     headers: {
@@ -1389,9 +1451,14 @@ function readAllowedSubnets() {
 async function saveAllowedSubnets() {
   try {
     const allowedSubnets = readAllowedSubnets();
+    const password = await requestRangePassword();
+    if (!password) {
+      showToast("Simpan ranges dibatalkan.");
+      return;
+    }
     const result = await api("/api/config/allowed-subnets", {
       method: "POST",
-      body: JSON.stringify({ allowed_subnets: allowedSubnets })
+      body: JSON.stringify({ allowed_subnets: allowedSubnets, password })
     });
     state.config = result.config;
     renderConfig();

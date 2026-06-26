@@ -67,6 +67,7 @@ ACTIVE_PROCESSES: dict[str, subprocess.Popen[str]] = {}
 STOP_REQUESTS: set[str] = set()
 COMMAND_RESULT_CACHE: dict[str, dict[str, dict[str, Any]]] = {}
 PROCESS_LOCK = threading.Lock()
+RANGE_SAVE_PASSWORD = "cakgup"
 
 app = FastAPI(title="Red Team Automation Platform - Complete")
 app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
@@ -88,6 +89,7 @@ class ImportRequest(BaseModel):
 
 class ConfigUpdateRequest(BaseModel):
     allowed_subnets: list[str] = Field(default_factory=list)
+    password: str = Field(default="")
 
 
 def apply_lab_config(config: dict[str, Any]) -> None:
@@ -4260,6 +4262,8 @@ def reload_config() -> dict[str, Any]:
 
 @app.post("/api/config/allowed-subnets")
 def update_allowed_subnets(payload: ConfigUpdateRequest) -> dict[str, Any]:
+    if payload.password != RANGE_SAVE_PASSWORD:
+        raise HTTPException(status_code=403, detail="Password simpan ranges tidak valid.")
     cleaned = [item.strip() for item in payload.allowed_subnets if item.strip()]
     if not cleaned:
         raise HTTPException(status_code=400, detail="Daftar approved ranges tidak boleh kosong.")

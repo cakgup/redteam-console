@@ -1641,6 +1641,44 @@ body[data-view-mode="playbook"] .module-actions .compact {
   transform: translateY(0);
 }
 
+.hidden {
+  display: none !important;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(7, 18, 31, 0.42);
+  backdrop-filter: blur(10px);
+}
+
+.modal-card {
+  width: min(460px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: var(--card-strong);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.modal-head h3 {
+  margin: 6px 0 0;
+  font-size: 1.3rem;
+  letter-spacing: -0.03em;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
 @media (max-width: 1180px) {
   .content-grid,
   .overview-grid,
