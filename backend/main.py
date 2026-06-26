@@ -89,6 +89,24 @@ class ImportRequest(BaseModel):
 class ConfigUpdateRequest(BaseModel):
     allowed_subnets: list[str] = Field(default_factory=list)
 
+
+def apply_lab_config(config: dict[str, Any]) -> None:
+    global LAB_CONFIG, ALLOWED_SUBNET_STRINGS, LAB_PROFILES, LAB_CONFIG_SOURCE, LAB_CONFIG_PATH, ALLOWED_SUBNETS
+    subnet_strings = tuple(str(item).strip() for item in config["allowed_subnets"])
+    subnet_networks: list[ipaddress._BaseNetwork] = []
+    for cidr in subnet_strings:
+        try:
+            subnet_networks.append(ipaddress.ip_network(cidr, strict=False))
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=f"Subnet tidak valid: {cidr}") from error
+
+    LAB_CONFIG = config
+    ALLOWED_SUBNET_STRINGS = subnet_strings
+    LAB_PROFILES = tuple(config["lab_profiles"])
+    LAB_CONFIG_SOURCE = str(config["source"])
+    LAB_CONFIG_PATH = str(config["path"])
+    ALLOWED_SUBNETS = tuple(subnet_networks)
+
 class DestructiveActionRequest(BaseModel):
     action: str
     target: str
