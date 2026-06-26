@@ -1,0 +1,803 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class ModuleSpec:
+    id: str
+    title: str
+    phase_id: str
+    phase_label: str
+    phase_order: int
+    description: str
+    risk: str
+    mitre: str
+    engine: str
+    mode: str
+    preview: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class ModulePlaybook:
+    skill_level: str
+    operator_focus: str
+    tooling: tuple[str, ...]
+    evidence: tuple[str, ...]
+    telemetry: tuple[str, ...]
+    depth_profile: str
+    allowed_checks: tuple[str, ...]
+    simulation_stance: str
+
+
+def module(
+    *,
+    id: str,
+    title: str,
+    phase_id: str,
+    phase_label: str,
+    phase_order: int,
+    description: str,
+    risk: str,
+    mitre: str,
+    preview: tuple[str, ...],
+) -> ModuleSpec:
+    return ModuleSpec(
+        id=id,
+        title=title,
+        phase_id=phase_id,
+        phase_label=phase_label,
+        phase_order=phase_order,
+        description=description,
+        risk=risk,
+        mitre=mitre,
+        engine="python-runner",
+        mode="simulation-only",
+        preview=preview,
+    )
+
+
+MODULES: tuple[ModuleSpec, ...] = (
+    module(
+        id="recon-service-scan",
+        title="Service Discovery Sweep",
+        phase_id="recon",
+        phase_label="Reconnaissance",
+        phase_order=1,
+        description="Simulasi inventarisasi service, port umum, dan exposure awal untuk aset yang sudah disetujui dalam subnet lab.",
+        risk="safe",
+        mitre="T1046",
+        preview=(
+            "Validate target against allowed subnet and job scope.",
+            "Stage synthetic service findings for HTTP, SSH, DNS, and internal middleware.",
+            "Prepare evidence notes for SOC or blue-team review.",
+        ),
+    ),
+    module(
+        id="recon-host-discovery",
+        title="Host Discovery Snapshot",
+        phase_id="recon",
+        phase_label="Reconnaissance",
+        phase_order=1,
+        description="Simulasi host discovery pada segmen lab untuk memahami permukaan target tanpa menjalankan scan agresif nyata.",
+        risk="safe",
+        mitre="T1595",
+        preview=(
+            "Map reachable lab nodes from the approved subnet.",
+            "Emit bounded host inventory log for tabletop discussion.",
+            "Record discovery deltas against prior baseline snapshots.",
+        ),
+    ),
+    module(
+        id="recon-dns-enumeration",
+        title="DNS & Virtual Host Mapping",
+        phase_id="recon",
+        phase_label="Reconnaissance",
+        phase_order=1,
+        description="Simulasi enumerasi DNS, virtual host, dan service naming untuk mendukung pemetaan awal aplikasi internal.",
+        risk="lab",
+        mitre="T1590",
+        preview=(
+            "Resolve approved domain labels from local module catalog.",
+            "Generate synthetic vhost and resolver observations.",
+            "Flag candidate records for later baseline validation.",
+        ),
+    ),
+    module(
+        id="recon-amass-expansion",
+        title="Asset Surface Expansion Review",
+        phase_id="recon",
+        phase_label="Reconnaissance",
+        phase_order=1,
+        description="Simulasi ekspansi aset dan subdomain untuk memperkaya scope lab internal tanpa melakukan enumerasi liar di luar range yang disetujui.",
+        risk="lab",
+        mitre="T1590.001",
+        preview=(
+            "Correlate approved domains, staged naming hints, and discovered asset groups.",
+            "Build synthetic exposure clusters for internet-facing and internal labels.",
+            "Prepare scope expansion notes before baseline validation continues.",
+        ),
+    ),
+    module(
+        id="baseline-web-fingerprint",
+        title="Web Technology Fingerprint",
+        phase_id="baseline",
+        phase_label="Baseline Assessment",
+        phase_order=2,
+        description="Simulasi fingerprinting teknologi web, banner, dan stack komponen untuk baseline aset internal.",
+        risk="safe",
+        mitre="T1595.002",
+        preview=(
+            "Read staged HTTP metadata for the selected target.",
+            "Summarize framework, header, and component exposure indicators.",
+            "Mark version evidence that should be rechecked manually if needed.",
+        ),
+    ),
+    module(
+        id="baseline-content-discovery",
+        title="Curated Path Exposure Review",
+        phase_id="baseline",
+        phase_label="Baseline Assessment",
+        phase_order=2,
+        description="Simulasi validasi path penting seperti login, admin, health check, static file, dan API root di lingkungan lab.",
+        risk="lab",
+        mitre="T1083",
+        preview=(
+            "Load bounded path set from internal module definition.",
+            "Emit synthetic 200, 302, 403, and 404 outcomes for approved paths.",
+            "Highlight findings suitable for defensive hardening backlog.",
+        ),
+    ),
+    module(
+        id="baseline-nikto-review",
+        title="Web Misconfiguration Heuristic Review",
+        phase_id="baseline",
+        phase_label="Baseline Assessment",
+        phase_order=2,
+        description="Simulasi review cepat ala Nikto untuk header, file default, directory indexing, dan kelemahan konfigurasi umum pada web target lab.",
+        risk="lab",
+        mitre="T1595.002",
+        preview=(
+            "Stage synthetic checks for default files, banner clues, and exposed helper endpoints.",
+            "Group findings by hardening backlog, noisy false positives, and validation priority.",
+            "Prepare evidence notes for web owner and SOC review.",
+        ),
+    ),
+    module(
+        id="baseline-gobuster-routes",
+        title="Route Enumeration Review",
+        phase_id="baseline",
+        phase_label="Baseline Assessment",
+        phase_order=2,
+        description="Simulasi enumerasi route dan directory pada web lab untuk memetakan path penting, backup artifact, dan endpoint administratif.",
+        risk="lab",
+        mitre="T1083",
+        preview=(
+            "Map staged content families such as admin, api, backup, upload, and docs.",
+            "Compare route exposure across primary and alternate ports in approved scope.",
+            "Promote high-signal paths into evidence and remediation tracking.",
+        ),
+    ),
+    module(
+        id="baseline-tls-dns-review",
+        title="TLS & DNS Baseline Review",
+        phase_id="baseline",
+        phase_label="Baseline Assessment",
+        phase_order=2,
+        description="Simulasi pemeriksaan awal konfigurasi TLS, certificate exposure, dan hygiene DNS untuk kebutuhan baseline.",
+        risk="safe",
+        mitre="T1590.002",
+        preview=(
+            "Summarize synthetic TLS posture and certificate metadata.",
+            "Review DNS hygiene signals from approved domain notes.",
+            "Record follow-up items for hardening and renewal tracking.",
+        ),
+    ),
+    module(
+        id="sensitive-file-discovery",
+        title="Sensitive File Discovery",
+        phase_id="baseline",
+        phase_label="Baseline Assessment",
+        phase_order=2,
+        description="Discovery file sensitif pada host target untuk menemukan `.env`, config, key material, history file, dan artefak lain yang berpotensi membocorkan kredensial atau informasi penting.",
+        risk="restricted",
+        mitre="T1083",
+        preview=(
+            "Attempt HTTP/HTTPS download of high-value file paths from the approved target.",
+            "Prioritize `.env`, config, backup, and exposed repository artifacts with credential exposure potential.",
+            "Promote only downloadable file paths and redacted excerpts into evidence.",
+        ),
+    ),
+    module(
+        id="read-sensitive-file",
+        title="Read Sensitive File",
+        phase_id="objective",
+        phase_label="Actions on Objectives",
+        phase_order=8,
+        description="Membaca file sensitif tertentu secara aman dengan redaksi otomatis agar hanya evidence penting yang tampil, tanpa mengekspor seluruh isi file mentah ke report.",
+        risk="restricted",
+        mitre="T1005",
+        preview=(
+            "Download a single approved file path from operator note over HTTP/HTTPS.",
+            "Redact credentials, tokens, and secrets before evidence is stored.",
+            "Surface only high-signal excerpts from the downloaded file for pentest reporting and triage.",
+        ),
+    ),
+    module(
+        id="weapon-artifact-review",
+        title="Payload Artifact Review",
+        phase_id="weapon",
+        phase_label="Weaponization",
+        phase_order=3,
+        description="Simulasi telaah artefak lab untuk memahami bagaimana file uji dikategorikan, disetujui, dan diawasi sebelum dipakai.",
+        risk="restricted",
+        mitre="TA0011",
+        preview=(
+            "Review artifact approval workflow for isolated lab usage.",
+            "Check naming, storage, and traceability controls for red-team samples.",
+            "Log required reviewer sign-off before any future live adapter is enabled.",
+        ),
+    ),
+    module(
+        id="weapon-dropper-safety",
+        title="Dropper Safety Checklist",
+        phase_id="weapon",
+        phase_label="Weaponization",
+        phase_order=3,
+        description="Simulasi checklist keamanan untuk artefak demonstrasi agar tetap terisolasi, dapat diaudit, dan tidak menyebar ke luar scope.",
+        risk="restricted",
+        mitre="T1587",
+        preview=(
+            "Confirm artifact remains in approved storage boundary.",
+            "Validate that quarantine and hash registration steps are documented.",
+            "Generate tabletop-only notes instead of executable output.",
+        ),
+    ),
+    module(
+        id="weapon-defender-view",
+        title="Artifact Defender View",
+        phase_id="weapon",
+        phase_label="Weaponization",
+        phase_order=3,
+        description="Simulasi sudut pandang defender terhadap artefak uji, termasuk metadata file, telemetry, dan chain-of-custody evidence.",
+        risk="concept",
+        mitre="T1588",
+        preview=(
+            "Summarize how an approved lab artifact would appear in telemetry.",
+            "List metadata fields useful for SOC triage and whitelisting decisions.",
+            "Capture safe notes for training and detection engineering.",
+        ),
+    ),
+    module(
+        id="delivery-email-tabletop",
+        title="Email Delivery Tabletop",
+        phase_id="delivery",
+        phase_label="Delivery",
+        phase_order=4,
+        description="Simulasi workflow pengiriman awareness email pada lab atau skenario resmi tanpa benar-benar mengirim pesan.",
+        risk="restricted",
+        mitre="T1566",
+        preview=(
+            "Render pre-send checklist for recipient scope and approval ticket.",
+            "Simulate header, attachment, and redirect validation steps.",
+            "Emit SOC-facing notes about expected mailbox and gateway telemetry.",
+        ),
+    ),
+    module(
+        id="delivery-web-hosting-review",
+        title="Web Hosting Delivery Review",
+        phase_id="delivery",
+        phase_label="Delivery",
+        phase_order=4,
+        description="Simulasi review mekanisme delivery berbasis web hosting di lingkungan lab tertutup.",
+        risk="lab",
+        mitre="T1583.001",
+        preview=(
+            "Check lab-hosted delivery page against target restrictions.",
+            "Document content provenance and cleanup expectations.",
+            "Produce bounded log output for incident-response rehearsal.",
+        ),
+    ),
+    module(
+        id="delivery-responder-awareness",
+        title="Name Resolution Abuse Awareness",
+        phase_id="delivery",
+        phase_label="Delivery",
+        phase_order=4,
+        description="Simulasi skenario awareness untuk penyalahgunaan LLMNR atau sejenisnya, difokuskan ke deteksi dan mitigasi.",
+        risk="concept",
+        mitre="T1557",
+        preview=(
+            "Describe network conditions that would trigger name-resolution alerts.",
+            "Record telemetry expectations for blue-team correlation.",
+            "Suggest containment and hardening actions without executing the scenario.",
+        ),
+    ),
+    module(
+        id="exploit-sql-validation",
+        title="Input Validation Weakness Drill",
+        phase_id="exploit",
+        phase_label="Exploitation",
+        phase_order=5,
+        description="Simulasi validasi kelemahan input aplikasi untuk mendukung review fix, logging, dan response workflow pada target lab.",
+        risk="lab",
+        mitre="T1190",
+        preview=(
+            "Check whether the target note includes the approved application surface.",
+            "Emit synthetic findings for request validation, error handling, and logging gaps.",
+            "Prepare evidence wording for remediation handoff.",
+        ),
+    ),
+    module(
+        id="exploit-auth-control-review",
+        title="Credential Abuse Control Review",
+        phase_id="exploit",
+        phase_label="Exploitation",
+        phase_order=5,
+        description="Simulasi evaluasi kontrol terhadap percobaan login berulang, lockout, dan alerting yang relevan bagi SOC.",
+        risk="restricted",
+        mitre="T1110",
+        preview=(
+            "Review account lockout expectations for the approved lab system.",
+            "Generate synthetic failed-auth event sequence for alert tuning.",
+            "Document whether MFA or adaptive response should be added.",
+        ),
+    ),
+    module(
+        id="exploit-session-review",
+        title="Session & Handler Workflow Review",
+        phase_id="exploit",
+        phase_label="Exploitation",
+        phase_order=5,
+        description="Simulasi alur session establishment di lab untuk memahami apa yang harus dicatat, diawasi, dan diisolasi saat validasi eksploitasi resmi.",
+        risk="restricted",
+        mitre="TA0001",
+        preview=(
+            "Describe synthetic session-establishment checkpoints for the lab.",
+            "List telemetry touchpoints expected on endpoint and network monitoring.",
+            "Note mandatory operator approvals before any future live execution adapter.",
+        ),
+    ),
+    module(
+        id="install-persistence-checklist",
+        title="Persistence Checklist Review",
+        phase_id="install",
+        phase_label="Installation",
+        phase_order=6,
+        description="Simulasi telaah persistence di Windows/Linux lab untuk kebutuhan deteksi, cleanup, dan audit defensif.",
+        risk="restricted",
+        mitre="T1053",
+        preview=(
+            "Enumerate approved persistence families as conceptual audit items.",
+            "Record cleanup obligations and rollback checkpoints.",
+            "Prepare watchlist indicators for host monitoring teams.",
+        ),
+    ),
+    module(
+        id="install-registry-cron-audit",
+        title="Registry & Cron Audit Drill",
+        phase_id="install",
+        phase_label="Installation",
+        phase_order=6,
+        description="Simulasi audit indikator persistence seperti scheduled task, run key, dan cron pada host latihan.",
+        risk="restricted",
+        mitre="T1060",
+        preview=(
+            "Generate synthetic audit entries for registry, scheduler, and cron checks.",
+            "Map artifacts to remediation owner and validation date.",
+            "Summarize host-hardening opportunities.",
+        ),
+    ),
+    module(
+        id="install-defender-recovery",
+        title="Persistence Recovery Readiness",
+        phase_id="install",
+        phase_label="Installation",
+        phase_order=6,
+        description="Simulasi kesiapan recovery setelah temuan persistence agar tim defender memiliki langkah verifikasi pasca-remediasi.",
+        risk="concept",
+        mitre="TA0003",
+        preview=(
+            "Build recovery checkpoints for service integrity, user access, and scheduled jobs.",
+            "Capture evidence requirements for post-cleanup sign-off.",
+            "Recommend validation steps for re-imaging or rollback when needed.",
+        ),
+    ),
+    module(
+        id="c2-telemetry-review",
+        title="C2 Telemetry Review",
+        phase_id="c2",
+        phase_label="Command & Control",
+        phase_order=7,
+        description="Simulasi pola beaconing, callback interval, dan log jaringan yang perlu dipahami tim SOC di lab tertutup.",
+        risk="restricted",
+        mitre="TA0011",
+        preview=(
+            "Describe periodic outbound behavior as synthetic telemetry only.",
+            "List proxy, firewall, and EDR signals expected during review.",
+            "Record thresholds for triage and escalation within the SOC workflow.",
+        ),
+    ),
+    module(
+        id="c2-tunnel-governance",
+        title="Tunnel Governance Review",
+        phase_id="c2",
+        phase_label="Command & Control",
+        phase_order=7,
+        description="Simulasi governance untuk skenario tunneling di lab, difokuskan ke approval, observability, dan batas aman.",
+        risk="lab",
+        mitre="T1572",
+        preview=(
+            "Check whether the scenario remains inside the authorized subnet boundary.",
+            "Outline monitoring controls for tunnel lifecycle and teardown.",
+            "Generate safe notes for incident replay and control validation.",
+        ),
+    ),
+    module(
+        id="c2-framework-awareness",
+        title="Framework Awareness Brief",
+        phase_id="c2",
+        phase_label="Command & Control",
+        phase_order=7,
+        description="Simulasi materi awareness untuk memahami family framework C2 dari sudut deteksi, bukan penggunaan langsung.",
+        risk="concept",
+        mitre="T1587.001",
+        preview=(
+            "Summarize high-level framework behaviors relevant to blue-team detection.",
+            "Capture signatures, hunting leads, and false-positive considerations.",
+            "Keep the output limited to training and defensive context.",
+        ),
+    ),
+    module(
+        id="objective-credential-impact",
+        title="Credential Exposure Impact Review",
+        phase_id="objective",
+        phase_label="Actions on Objectives",
+        phase_order=8,
+        description="Simulasi dampak paparan kredensial dan bagaimana evidence, scope, serta containment harus dikelola secara defensif.",
+        risk="restricted",
+        mitre="TA0006",
+        preview=(
+            "Describe the blast radius for accounts, services, and privileged paths.",
+            "List evidence fields needed for password reset and containment workflow.",
+            "Prepare report language for leadership and system owners.",
+        ),
+    ),
+    module(
+        id="objective-lateral-movement-impact",
+        title="Pivot & Lateral Movement Review",
+        phase_id="objective",
+        phase_label="Actions on Objectives",
+        phase_order=8,
+        description="Simulasi evaluasi dampak pivot internal terhadap segmentasi, trust relationship, dan deteksi lateral movement.",
+        risk="restricted",
+        mitre="TA0008",
+        preview=(
+            "Build synthetic path graph for the approved lab subnet.",
+            "Highlight segmentation breakpoints and monitoring blind spots.",
+            "Capture network and identity remediation actions.",
+        ),
+    ),
+    module(
+        id="objective-evidence-bundle",
+        title="Evidence Bundle Draft",
+        phase_id="objective",
+        phase_label="Actions on Objectives",
+        phase_order=8,
+        description="Menyusun simulasi ringkasan evidence, timeline, dampak, dan rekomendasi perbaikan sebagai keluaran akhir kill chain.",
+        risk="safe",
+        mitre="TA0043",
+        preview=(
+            "Compile synthetic observations from all prior phases.",
+            "Generate report-ready timeline with decision points and owners.",
+            "Summarize next actions for remediation, validation, and closure.",
+        ),
+    ),
+    module(
+        id="objective-hashcat-impact",
+        title="Offline Hash Exposure Review",
+        phase_id="objective",
+        phase_label="Actions on Objectives",
+        phase_order=8,
+        description="Simulasi dampak paparan hash dan bagaimana hasil audit offline akan diterjemahkan menjadi prioritas containment, reset, dan awareness untuk lab.",
+        risk="restricted",
+        mitre="T1110.002",
+        preview=(
+            "Estimate crackability tiers for staged credential material without executing a real cracking run.",
+            "Cluster accounts by privilege, reuse risk, and blast radius.",
+            "Prepare remediation notes for password reset and identity hardening.",
+        ),
+    ),
+    module(
+        id="objective-john-audit",
+        title="Password Audit Wordlist Review",
+        phase_id="objective",
+        phase_label="Actions on Objectives",
+        phase_order=8,
+        description="Simulasi audit kualitas password berbasis wordlist untuk menilai risiko reuse, weak credential patterns, dan kebutuhan policy update di environment lab.",
+        risk="restricted",
+        mitre="T1110.002",
+        preview=(
+            "Summarize staged weak-pattern families such as season-year, company-name, and keyboard-walk variants.",
+            "Highlight where policy, MFA, or reset cadence should be tightened.",
+            "Generate report-friendly language for identity and compliance owners.",
+        ),
+    ),
+)
+
+
+def module_map() -> dict[str, ModuleSpec]:
+    return {module.id: module for module in MODULES}
+
+
+def playbook(
+    *,
+    skill_level: str,
+    operator_focus: str,
+    tooling: tuple[str, ...],
+    evidence: tuple[str, ...],
+    telemetry: tuple[str, ...],
+    depth_profile: str,
+    allowed_checks: tuple[str, ...],
+    simulation_stance: str,
+) -> ModulePlaybook:
+    return ModulePlaybook(
+        skill_level=skill_level,
+        operator_focus=operator_focus,
+        tooling=tooling,
+        evidence=evidence,
+        telemetry=telemetry,
+        depth_profile=depth_profile,
+        allowed_checks=allowed_checks,
+        simulation_stance=simulation_stance,
+    )
+
+
+PHASE_PLAYBOOKS: dict[str, ModulePlaybook] = {
+    "recon": playbook(
+        skill_level="foundational",
+        operator_focus="surface mapping",
+        tooling=("nmap", "dnsx", "httpx"),
+        evidence=("open service notes", "reachable host list", "vhost observations"),
+        telemetry=("firewall accepts", "dns resolver queries", "http metadata"),
+        depth_profile="surface",
+        allowed_checks=("host reachability", "top service exposure", "service banner metadata"),
+        simulation_stance="assertive-lab",
+    ),
+    "baseline": playbook(
+        skill_level="foundational",
+        operator_focus="validation baseline",
+        tooling=("httpx", "whatweb", "curl"),
+        evidence=("header snapshot", "path exposure list", "tls note"),
+        telemetry=("web access logs", "reverse proxy headers", "tls handshake details"),
+        depth_profile="baseline",
+        allowed_checks=("header review", "tls posture", "approved path validation"),
+        simulation_stance="assertive-lab",
+    ),
+    "weapon": playbook(
+        skill_level="intermediate",
+        operator_focus="artifact governance",
+        tooling=("sha256sum", "file", "yara"),
+        evidence=("hash registry", "approval note", "chain-of-custody"),
+        telemetry=("edr file events", "quarantine action", "artifact watchlist"),
+        depth_profile="tabletop",
+        allowed_checks=("artifact naming", "hash traceability", "approval workflow"),
+        simulation_stance="tabletop",
+    ),
+    "delivery": playbook(
+        skill_level="intermediate",
+        operator_focus="delivery simulation",
+        tooling=("swaks", "curl", "mitmproxy"),
+        evidence=("header review", "hosting note", "redirect checklist"),
+        telemetry=("mail gateway logs", "proxy requests", "dns or llmnr alerts"),
+        depth_profile="tabletop",
+        allowed_checks=("header simulation", "hosting validation", "redirect review"),
+        simulation_stance="tabletop",
+    ),
+    "exploit": playbook(
+        skill_level="intermediate",
+        operator_focus="control validation",
+        tooling=("burpsuite", "sqlmap-safe", "ffuf-safe"),
+        evidence=("validation gap note", "auth control drift", "session trace"),
+        telemetry=("waf alerts", "auth failures", "application error logs"),
+        depth_profile="control-review",
+        allowed_checks=("input handling", "auth control response", "session control drift"),
+        simulation_stance="intrusive-lab",
+    ),
+    "install": playbook(
+        skill_level="advanced",
+        operator_focus="persistence review",
+        tooling=("autoruns", "crontab", "systemctl"),
+        evidence=("scheduled task note", "run-key audit", "recovery checklist"),
+        telemetry=("task scheduler events", "cron changes", "service startup drift"),
+        depth_profile="defender-audit",
+        allowed_checks=("scheduler review", "startup review", "recovery validation"),
+        simulation_stance="intrusive-lab",
+    ),
+    "c2": playbook(
+        skill_level="advanced",
+        operator_focus="beacon detection",
+        tooling=("zeek", "tcpdump", "suricata"),
+        evidence=("beacon rhythm note", "tunnel governance", "egress review"),
+        telemetry=("proxy logs", "edr network graph", "dns beacon cadence"),
+        depth_profile="detection-review",
+        allowed_checks=("egress rhythm", "tunnel boundary", "beacon cadence"),
+        simulation_stance="intrusive-lab",
+    ),
+    "objective": playbook(
+        skill_level="advanced",
+        operator_focus="impact reporting",
+        tooling=("jq", "pandoc", "graphviz"),
+        evidence=("blast radius summary", "pivot path graph", "final report bundle"),
+        telemetry=("identity alerts", "lateral movement detections", "closure checkpoints"),
+        depth_profile="reporting",
+        allowed_checks=("blast radius", "path mapping", "closure evidence"),
+        simulation_stance="reporting",
+    ),
+}
+
+
+MODULE_PLAYBOOK_OVERRIDES: dict[str, dict[str, Any]] = {
+    "recon-dns-enumeration": {
+        "tooling": ("dig", "dnsx", "httpx"),
+        "evidence": ("resolver findings", "vhost shortlist", "name record map"),
+        "depth_profile": "service-metadata",
+        "allowed_checks": ("dns records", "resolver metadata", "vhost correlation"),
+        "simulation_stance": "assertive-lab",
+    },
+    "recon-amass-expansion": {
+        "tooling": ("amass", "dig", "httpx"),
+        "operator_focus": "asset expansion",
+        "evidence": ("subdomain shortlist", "asset cluster map", "scope expansion note"),
+        "telemetry": ("dns queries", "resolver metadata", "web host overlap"),
+        "depth_profile": "asset-expansion",
+        "allowed_checks": ("approved domain expansion", "subdomain clustering", "asset overlap review"),
+        "simulation_stance": "assertive-lab",
+    },
+    "baseline-content-discovery": {
+        "tooling": ("ffuf-safe", "nuclei", "httpx"),
+        "evidence": ("approved path review", "status code matrix", "exposed route note"),
+        "depth_profile": "approved-path-review",
+        "allowed_checks": ("approved path responses", "redirect behavior", "status matrix"),
+        "simulation_stance": "assertive-lab",
+    },
+    "baseline-nikto-review": {
+        "tooling": ("nikto", "nuclei", "whatweb"),
+        "operator_focus": "misconfiguration review",
+        "evidence": ("default file note", "header misconfig note", "web hardening checklist"),
+        "telemetry": ("web access logs", "banner clues", "error response patterns"),
+        "depth_profile": "misconfig-heuristics",
+        "allowed_checks": ("default files", "security header drift", "indexing and helper endpoint review"),
+        "simulation_stance": "assertive-lab",
+    },
+    "baseline-gobuster-routes": {
+        "tooling": ("ffuf-safe", "httpx", "curl"),
+        "operator_focus": "route expansion",
+        "evidence": ("route shortlist", "backup path note", "admin exposure review"),
+        "telemetry": ("web path hits", "redirect drift", "alternate port overlap"),
+        "depth_profile": "route-expansion",
+        "allowed_checks": ("approved directory families", "alternate route exposure", "backup artifact review"),
+        "simulation_stance": "assertive-lab",
+    },
+    "baseline-tls-dns-review": {
+        "tooling": ("openssl", "sslyze", "dig"),
+        "telemetry": ("certificate handshake", "resolver responses", "proxy tls logs"),
+        "depth_profile": "tls-metadata",
+        "allowed_checks": ("certificate metadata", "tls handshake posture", "resolver hygiene"),
+        "simulation_stance": "assertive-lab",
+    },
+    "sensitive-file-discovery": {
+        "tooling": ("curl", "httpx", "file"),
+        "operator_focus": "downloadable file hunting",
+        "evidence": ("sensitive file paths", "credential exposure shortlist", "high-value artifact note"),
+        "telemetry": ("web access logs", "reverse proxy traces", "download request alerts"),
+        "depth_profile": "web-file-exposure",
+        "allowed_checks": ("downloadable config discovery", "exposed repository files", "backup artifact review"),
+        "simulation_stance": "intrusive-lab",
+    },
+    "recon-service-scan": {
+        "depth_profile": "nse-enriched-metadata",
+        "allowed_checks": ("port reachability", "service fingerprint", "approved metadata scripts", "banner/title/cert harvest"),
+        "simulation_stance": "intrusive-lab",
+    },
+    "recon-host-discovery": {
+        "depth_profile": "host-inventory",
+        "allowed_checks": ("host up check", "latency snapshot", "inventory confirmation"),
+        "simulation_stance": "assertive-lab",
+    },
+    "weapon-defender-view": {
+        "operator_focus": "defender visibility",
+        "tooling": ("yara", "strings", "sha256sum"),
+    },
+    "delivery-email-tabletop": {
+        "tooling": ("swaks", "mailparser", "urlscan"),
+        "telemetry": ("smtp relay logs", "gateway detections", "user click simulations"),
+    },
+    "delivery-web-hosting-review": {
+        "tooling": ("curl", "httpx", "mitmproxy"),
+    },
+    "delivery-responder-awareness": {
+        "skill_level": "foundational",
+        "operator_focus": "network awareness",
+        "tooling": ("responder-lab", "tcpdump", "wireshark"),
+    },
+    "exploit-sql-validation": {
+        "tooling": ("burpsuite", "sqlmap-safe", "jq"),
+        "telemetry": ("waf validation alerts", "500 response spikes", "db error traces"),
+        "simulation_stance": "intrusive-lab",
+    },
+    "exploit-auth-control-review": {
+        "tooling": ("hydra-lab", "burpsuite", "otp review"),
+        "evidence": ("lockout threshold note", "mfa gap note", "auth log sample"),
+        "simulation_stance": "intrusive-lab",
+    },
+    "exploit-session-review": {
+        "tooling": ("burpsuite", "jwt-tool", "mitmproxy"),
+        "simulation_stance": "intrusive-lab",
+    },
+    "install-registry-cron-audit": {
+        "tooling": ("autoruns", "schtasks", "crontab"),
+    },
+    "c2-tunnel-governance": {
+        "tooling": ("chisel-lab", "ssh -D", "proxychains"),
+        "evidence": ("tunnel approval note", "egress boundary note", "teardown checklist"),
+        "simulation_stance": "intrusive-lab",
+    },
+    "c2-framework-awareness": {
+        "skill_level": "intermediate",
+        "operator_focus": "framework awareness",
+        "tooling": ("sigma", "suricata", "sysmon review"),
+    },
+    "objective-lateral-movement-impact": {
+        "tooling": ("bloodhound-lab", "graphviz", "jq"),
+        "evidence": ("pivot path graph", "segment weakness note", "trust boundary map"),
+    },
+    "objective-evidence-bundle": {
+        "skill_level": "foundational",
+        "operator_focus": "report assembly",
+        "tooling": ("jq", "pandoc", "markdown"),
+    },
+    "objective-hashcat-impact": {
+        "tooling": ("hashcat", "jq", "pandoc"),
+        "operator_focus": "hash exposure impact",
+        "evidence": ("crackability tier note", "credential blast radius", "reset priority matrix"),
+        "telemetry": ("identity alerts", "privilege concentration", "password reset checkpoints"),
+        "depth_profile": "offline-hash-impact",
+        "allowed_checks": ("hash exposure triage", "privilege clustering", "reset priority planning"),
+        "simulation_stance": "intrusive-lab",
+    },
+    "objective-john-audit": {
+        "tooling": ("john", "jq", "markdown"),
+        "operator_focus": "password quality audit",
+        "evidence": ("weak pattern note", "policy gap review", "mfa uplift recommendation"),
+        "telemetry": ("identity alerts", "policy exceptions", "password hygiene trends"),
+        "depth_profile": "wordlist-audit",
+        "allowed_checks": ("weak pattern families", "policy drift", "credential hygiene review"),
+        "simulation_stance": "intrusive-lab",
+    },
+    "read-sensitive-file": {
+        "tooling": ("curl", "base64", "grep"),
+        "operator_focus": "targeted download evidence",
+        "evidence": ("redacted sensitive excerpts", "config exposure note", "credential indicator review"),
+        "telemetry": ("web access logs", "download audit", "reverse proxy traces"),
+        "depth_profile": "downloaded-file-review",
+        "allowed_checks": ("approved file download", "credential keyword extraction", "redacted excerpt review"),
+        "simulation_stance": "intrusive-lab",
+    },
+}
+
+
+def module_playbook(module: ModuleSpec) -> ModulePlaybook:
+    base = PHASE_PLAYBOOKS[module.phase_id]
+    override = MODULE_PLAYBOOK_OVERRIDES.get(module.id, {})
+    return ModulePlaybook(
+        skill_level=str(override.get("skill_level", base.skill_level)),
+        operator_focus=str(override.get("operator_focus", base.operator_focus)),
+        tooling=tuple(override.get("tooling", base.tooling)),
+        evidence=tuple(override.get("evidence", base.evidence)),
+        telemetry=tuple(override.get("telemetry", base.telemetry)),
+        depth_profile=str(override.get("depth_profile", base.depth_profile)),
+        allowed_checks=tuple(override.get("allowed_checks", base.allowed_checks)),
+        simulation_stance=str(override.get("simulation_stance", base.simulation_stance)),
+    )

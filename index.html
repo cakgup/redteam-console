@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Authorized Lab Emulation Console</title>
+  <meta name="description" content="Starter dashboard untuk Kali Linux WSL dengan backend FastAPI, guardrail target, dan simulation-only job runner.">
+  <meta name="theme-color" content="#1e4f91">
+  <link rel="stylesheet" href="styles.css?v=20260625-console-resize">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <img class="brand-mark" src="/static/logo.png" alt="cakgup logo">
+        <div>
+          <h1>Authorized Lab Emulation Console</h1>
+          <p>Internal use only | developed with ❤️ by cakgup</p>
+        </div>
+      </div>
+
+      <div class="topbar-meta">
+        <button class="theme-button" id="themeToggle" type="button" aria-label="Ubah tema">◐</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="hero-card">
+        <div class="hero-fields">
+          <label class="field">
+            <span>Target IP</span>
+            <input id="targetInput" type="text" value="10.10.10.20" spellcheck="false" autocomplete="off">
+          </label>
+          <label class="field profile-field">
+            <span>Module Profile</span>
+            <select id="moduleProfileSelect">
+              <option value="fast" selected>fast</option>
+              <option value="balanced">balanced</option>
+              <option value="deep">deep</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="hero-actions">
+          <div class="view-switch" id="viewSwitch" aria-label="Pilih mode tampilan">
+            <button class="view-switch-button" id="playbookViewBtn" type="button">Playbook View</button>
+            <button class="view-switch-button" id="detailViewBtn" type="button">Detail View</button>
+          </div>
+          <button class="ghost-button" id="refreshModulesBtn" type="button">Refresh Modul</button>
+          <button class="primary-button" id="runChainBtn" type="button">Run Full Simulation Chain</button>
+        </div>
+      </section>
+
+      <section class="config-card">
+        <div class="config-card-head">
+          <div>
+            <p class="eyebrow">Range Editor</p>
+            <h3>Approved Ranges</h3>
+          </div>
+          <small id="configMetaLabel">Memuat sumber konfigurasi...</small>
+        </div>
+        <label class="field config-inline-field">
+          <span>Subnet CIDR</span>
+          <input id="allowedSubnetsInput" type="text" spellcheck="false" placeholder="10.10.10.0/24, 192.168.56.0/24">
+        </label>
+        <div class="config-card-actions">
+          <button class="ghost-button" id="reloadConfigBtn" type="button">Reload Config</button>
+          <button class="primary-button" id="saveRangesBtn" type="button">Simpan Ranges</button>
+        </div>
+      </section>
+
+      <section class="content-grid">
+        <div class="module-pane">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">Module Catalog</p>
+              <h2>Modul Cyber Kill Chain</h2>
+            </div>
+            <label class="catalog-search" aria-label="Cari modul">
+              <input id="moduleSearchInput" type="text" placeholder="Cari modul, tool, MITRE, risk...">
+            </label>
+          </div>
+
+          <div class="phase-tabs" id="phaseTabs"></div>
+          <div class="active-phase-bar" id="activePhaseBar"></div>
+          <div class="phase-groups" id="phaseGroups"></div>
+        </div>
+
+        <aside class="console-pane">
+          <div class="console-status">
+            <span class="status-dot" id="statusDot"></span>
+            <strong id="statusLabel">idle</strong>
+          </div>
+
+          <div class="history-card">
+            <div class="console-card-head">
+              <h3>Recent Jobs</h3>
+              <div class="history-actions">
+                <button class="ghost-button compact" id="refreshJobsBtn" type="button">Refresh</button>
+                <button class="ghost-button compact" id="stopAllJobsBtn" type="button">Stop Semua</button>
+                <button class="ghost-button compact" id="clearJobsBtn" type="button">Hapus Semua</button>
+              </div>
+            </div>
+            <div class="job-list" id="jobList"></div>
+          </div>
+
+          <div class="progress-card">
+            <div class="progress-card-head">
+              <strong id="jobProgressValue">0%</strong>
+              <div class="export-actions">
+                <button class="ghost-button compact" id="viewHtmlBtn" type="button" disabled>View HTML</button>
+              </div>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="jobProgressBar"></div>
+            </div>
+            <div class="severity-summary" id="severitySummary"></div>
+          </div>
+
+          <div class="console-card">
+            <div class="console-card-head">
+              <div class="console-card-title">
+                <h3>Live Console</h3>
+                <span id="activeCommandLabel">No active command</span>
+              </div>
+              <span id="activeJobLabel">No job selected</span>
+            </div>
+            <pre id="consoleOutput">Memuat konfigurasi backend...</pre>
+          </div>
+
+          <div class="history-card">
+            <div class="console-card-head">
+              <h3>Module Timeline</h3>
+              <span id="timelineCountLabel">0 phases</span>
+            </div>
+            <div class="timeline-list" id="timelineList"></div>
+          </div>
+
+          <div class="history-card">
+            <div class="console-card-head">
+              <h3>Evidence Highlights</h3>
+              <span id="evidenceCountLabel">0 items</span>
+            </div>
+            <div class="evidence-list" id="evidenceList"></div>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="script.js?v=20260626-evidence-panel-fix"></script>
+</body>
+</html>

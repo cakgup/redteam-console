@@ -1,0 +1,1 @@
+$6$salt$hash1:user1

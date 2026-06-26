@@ -1,0 +1,42 @@
+{
+  "allowed_subnets": [
+    "10.10.10.0/24",
+    "192.168.56.0/24",
+    "192.168.122.0/24",
+    "172.16.56.0/24"
+  ],
+  "lab_profiles": [
+    {
+      "id": "isolated-poc",
+      "name": "Isolated POC Lab",
+      "subnets": [
+        "10.10.10.0/24"
+      ],
+      "note": "Range untuk POC internal yang dipantau Wazuh."
+    },
+    {
+      "id": "virtualbox-hostonly",
+      "name": "VirtualBox Host-Only",
+      "subnets": [
+        "192.168.56.0/24"
+      ],
+      "note": "Range host-only yang umum dipakai VM simulasi di laptop."
+    },
+    {
+      "id": "libvirt-default",
+      "name": "libvirt Default NAT",
+      "subnets": [
+        "192.168.122.0/24"
+      ],
+      "note": "Range default pada banyak VM Linux/libvirt."
+    },
+    {
+      "id": "custom-lab",
+      "name": "Custom Internal Lab",
+      "subnets": [
+        "172.16.56.0/24"
+      ],
+      "note": "Contoh range lain untuk segment simulasi internal."
+    }
+  ]
+}
