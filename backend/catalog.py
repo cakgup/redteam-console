@@ -135,6 +135,21 @@ MODULES: tuple[ModuleSpec, ...] = (
         ),
     ),
     module(
+        id="web-security-header-audit",
+        title="Web Security Header Audit",
+        phase_id="baseline",
+        phase_label="Baseline Assessment",
+        phase_order=2,
+        description="Audit terfokus untuk security header HTTP/HTTPS menggunakan checker internal agar gap hardening web lebih cepat terlihat pada evidence dan report.",
+        risk="safe",
+        mitre="T1595.002",
+        preview=(
+            "Reuse discovered web targets from prior service or fingerprint observations.",
+            "Check defensive headers such as CSP, HSTS, X-Frame-Options, and related browser controls.",
+            "Promote missing header risks and remediation notes into evidence for report generation.",
+        ),
+    ),
+    module(
         id="baseline-content-discovery",
         title="Curated Path Exposure Review",
         phase_id="baseline",
@@ -660,6 +675,15 @@ MODULE_PLAYBOOK_OVERRIDES: dict[str, dict[str, Any]] = {
         "evidence": ("approved path review", "status code matrix", "exposed route note"),
         "depth_profile": "approved-path-review",
         "allowed_checks": ("approved path responses", "redirect behavior", "status matrix"),
+        "simulation_stance": "assertive-lab",
+    },
+    "web-security-header-audit": {
+        "tooling": ("python3", "httpx", "curl"),
+        "operator_focus": "header hardening",
+        "evidence": ("missing security header note", "header baseline score", "hardening recommendation list"),
+        "telemetry": ("web response headers", "redirect chain", "https enforcement behavior"),
+        "depth_profile": "header-hardening-review",
+        "allowed_checks": ("security header presence", "browser policy validation", "https header posture"),
         "simulation_stance": "assertive-lab",
     },
     "baseline-nikto-review": {

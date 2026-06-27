@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Authorized Lab Emulation Console</title>
-  <meta name="description" content="Starter dashboard untuk Kali Linux WSL dengan backend FastAPI, guardrail target, dan simulation-only job runner.">
+  <title>Authorized Lab Emulation Console With WSL + Windows OS</title>
+  <meta name="description" content="Dashboard pentest internal untuk operator Windows yang menjalankan tool dari WSL Kali Linux.">
   <meta name="theme-color" content="#1e4f91">
-  <link rel="stylesheet" href="styles.css?v=20260626-range-password">
+  <link rel="stylesheet" href="styles.css?v=20260626-layout-fix">
 </head>
 <body>
   <div class="app-shell">
@@ -14,13 +14,13 @@
       <div class="brand-block">
         <img class="brand-mark" src="/static/logo.png" alt="cakgup logo">
         <div>
-          <h1>Authorized Lab Emulation Console</h1>
-          <p>Internal use only | developed with ❤️ by cakgup</p>
+          <h1>Authorized Lab Emulation Console With WSL + Windows OS</h1>
+          <p>Internal use only | developed with love by cakgup</p>
         </div>
       </div>
 
       <div class="topbar-meta">
-        <button class="theme-button" id="themeToggle" type="button" aria-label="Ubah tema">◐</button>
+        <button class="theme-button" id="themeToggle" type="button" aria-label="Ubah tema">Theme</button>
       </div>
     </header>
 
@@ -117,31 +117,41 @@
             <div class="severity-summary" id="severitySummary"></div>
           </div>
 
-          <div class="console-card">
+          <div class="history-card insight-card">
             <div class="console-card-head">
-              <div class="console-card-title">
-                <h3>Live Console</h3>
-                <span id="activeCommandLabel">No active command</span>
+              <div class="panel-tabs" id="insightTabs">
+                <button class="panel-tab is-active" data-insight-tab="console" type="button">Console</button>
+                <button class="panel-tab" data-insight-tab="timeline" type="button">Timeline</button>
+                <button class="panel-tab" data-insight-tab="evidence" type="button">Evidence</button>
               </div>
-              <span id="activeJobLabel">No job selected</span>
             </div>
-            <pre id="consoleOutput">Memuat konfigurasi backend...</pre>
-          </div>
 
-          <div class="history-card">
-            <div class="console-card-head">
-              <h3>Module Timeline</h3>
-              <span id="timelineCountLabel">0 phases</span>
+            <div class="insight-panel" data-insight-panel="console">
+              <div class="console-card-head">
+                <div class="console-card-title">
+                  <h3>Live Console</h3>
+                  <span id="activeCommandLabel">No active command</span>
+                </div>
+                <span id="activeJobLabel">No job selected</span>
+              </div>
+              <pre id="consoleOutput">Memuat konfigurasi backend...</pre>
             </div>
-            <div class="timeline-list" id="timelineList"></div>
-          </div>
 
-          <div class="history-card">
-            <div class="console-card-head">
-              <h3>Evidence Highlights</h3>
-              <span id="evidenceCountLabel">0 items</span>
+            <div class="insight-panel hidden" data-insight-panel="timeline">
+              <div class="console-card-head">
+                <h3>Module Timeline</h3>
+                <span id="timelineCountLabel">0 phases</span>
+              </div>
+              <div class="timeline-list" id="timelineList"></div>
             </div>
-            <div class="evidence-list" id="evidenceList"></div>
+
+            <div class="insight-panel hidden" data-insight-panel="evidence">
+              <div class="console-card-head">
+                <h3>Evidence Highlights</h3>
+                <span id="evidenceCountLabel">0 items</span>
+              </div>
+              <div class="evidence-list" id="evidenceList"></div>
+            </div>
           </div>
         </aside>
       </section>
@@ -166,6 +176,6 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="script.js?v=20260626-range-password"></script>
+  <script src="script.js?v=20260626-evidence-summary-sync"></script>
 </body>
 </html>

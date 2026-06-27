@@ -1,0 +1,9 @@
+.venv/
+.runtime/*.log
+.runtime/*.pid
+.runtime/*.tmp
+backend/__pycache__/
+backend/data/*.db
+*.pyc
+ffuf_*.json
+ffuf-routes-*.json

@@ -40,6 +40,7 @@ from backend.assets import ASSETS, asset_map, serialize_asset
 from backend.catalog import MODULES, module_map, module_playbook
 from backend.lab_config import load_lab_config, save_lab_config
 from backend.store import JobStore
+from backend.wahidin_check_headers import check_headers as wahidin_check_headers
 from backend.workflow import ENGAGEMENTS, FINDINGS, parse_import
 
 # ============ Base Configuration ============
@@ -134,6 +135,7 @@ TOOL_COMMAND_ALIASES: dict[str, list[str] | None] = {
     "dnsrecon": ["dnsrecon"],
     "dnsx": ["dnsx"],
     "amass": ["amass"],
+    "python3": ["python3"],
     "httpx": ["httpx"],
     "whatweb": ["whatweb"],
     "wappalyzer": ["wappalyzer"],
@@ -900,6 +902,11 @@ def module_command_preview(module_id: str, target: str = "TARGET", execution_pro
             "fast": [f"httpx -u http://{target} -status-code -title -silent -timeout 10", f"whatweb -a 1 http://{target} -v --no-errors"],
             "balanced": [f"httpx -u http://{target} -status-code -title -tech-detect -tls-probe -silent -timeout 12", f"whatweb -a 3 http://{target} -v --no-errors"],
             "deep": [f"httpx -u http://{target} -status-code -title -tech-detect -tls-probe -web-server -server -silent -timeout 15", f"whatweb -a 4 http://{target} -v --no-errors"],
+        },
+        "web-security-header-audit": {
+            "fast": [f"python3 /app/backend/wahidin_check_headers.py http://{target} --timeout 10"],
+            "balanced": [f"python3 /app/backend/wahidin_check_headers.py http://{target} --timeout 12"],
+            "deep": [f"python3 /app/backend/wahidin_check_headers.py http://{target} --timeout 15"],
         },
         "baseline-content-discovery": {
             "fast": [f"ffuf -u http://{target}/FUZZ -w {web_wordlist} -mc 200,301,302,403 -fc 404 -t 20 -timeout 8 -s -of json -o ffuf_{target}.json", f"# parse ffuf_{target}.json into status/path evidence"],
@@ -2125,6 +2132,92 @@ def real_web_fingerprint(target: str, job_id: str = "", execution_profile: str =
         safe_update_progress(job_id, 90)
         safe_append_log(job_id, "✅ Web fingerprint completed", "info")
     
+    return events
+
+def real_web_security_header_audit(target: str, job_id: str = "", execution_profile: str = "balanced") -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    profile = normalize_execution_profile(execution_profile)
+    candidate_urls = discovered_web_targets(job_id, target)
+    primary_url = candidate_urls[0].rstrip("/")
+    timeout = 10 if profile == "fast" else 15 if profile == "deep" else 12
+    command = f"python3 /app/backend/wahidin_check_headers.py {primary_url} --timeout {timeout}"
+
+    try:
+        if job_id:
+            safe_append_log(job_id, "Starting web security header audit...", "info")
+            safe_update_progress(job_id, 15)
+            safe_append_log(job_id, f"Reusing discovery targets: {', '.join(candidate_urls[:3])}", "info")
+    except Exception:
+        pass
+
+    events.append({"kind": "log", "severity": "warning", "message": f"Running web security header audit ({profile})"})
+    events.append({"kind": "log", "severity": "info", "message": f"$ {command}"})
+
+    try:
+        result = wahidin_check_headers(primary_url, timeout)
+    except Exception as error:
+        events.append({"kind": "log", "severity": "warning", "message": f"Header audit failed: {error}"})
+        return events
+
+    try:
+        if job_id:
+            safe_update_progress(job_id, 80)
+    except Exception:
+        pass
+
+    present_lines = [
+        f"Header present: {item['name']} => {item['value']}"
+        for item in result.get("present_headers", [])[:8]
+    ]
+    missing_lines = [
+        f"Missing {item['name']} ({item['risk']}): {item['recommendation']}"
+        for item in result.get("missing_headers", [])
+    ]
+    details = [
+        f"Checked URL: {result.get('target_url')}",
+        f"Final URL: {result.get('final_url')}",
+        f"HTTP status: {result.get('status_code')}",
+        f"Security score: {result.get('score')}/{result.get('total_headers')}",
+        f"Overall risk: {result.get('overall_risk')}",
+        *missing_lines,
+        *present_lines,
+    ]
+
+    missing_headers = result.get("missing_headers", [])
+    summary = f"Security headers review: {len(missing_headers)} missing of {result.get('total_headers')}"
+    severity = str(result.get("overall_severity") or "info").lower()
+    if not missing_headers:
+        summary = f"Security headers review: all {result.get('total_headers')} monitored headers present"
+        severity = "info"
+
+    events.append(
+        {
+            "kind": "evidence",
+            "severity": severity,
+            "summary": summary,
+            "details": details[:30],
+            "artifacts": {
+                "command": command,
+                "checked_url": result.get("target_url"),
+                "final_url": result.get("final_url"),
+                "status_code": result.get("status_code"),
+                "header_score": result.get("score"),
+                "total_headers": result.get("total_headers"),
+                "overall_risk": result.get("overall_risk"),
+                "missing_headers": [item["name"] for item in missing_headers],
+                "security_headers": missing_lines,
+                "present_headers": [item["name"] for item in result.get("present_headers", [])],
+            },
+        }
+    )
+
+    try:
+        if job_id:
+            safe_update_progress(job_id, 95)
+            safe_append_log(job_id, "Web security header audit completed", "info")
+    except Exception:
+        pass
+
     return events
 
 def real_content_discovery(target: str, job_id: str = "", execution_profile: str = "balanced") -> list[dict[str, Any]]:
@@ -3423,6 +3516,7 @@ LIVE_ADAPTERS = {
     
     # Baseline Assessment
     "baseline-web-fingerprint": real_web_fingerprint,
+    "web-security-header-audit": real_web_security_header_audit,
     "baseline-content-discovery": real_content_discovery,
     "baseline-content-discovery-aggressive": real_content_discovery,
     "baseline-nikto-review": real_nikto_review_live,

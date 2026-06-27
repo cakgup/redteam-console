@@ -48,6 +48,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
+  overflow-x: hidden;
   color: var(--text);
   font-family: var(--sans);
   background:
@@ -228,6 +229,7 @@ button {
   align-items: end;
   justify-content: space-between;
   gap: 18px;
+  min-width: 0;
 }
 
 .config-card-head h3,
@@ -235,11 +237,22 @@ button {
   margin: 0;
 }
 
+.config-card-head > div:first-child,
+.config-card-head small {
+  min-width: 0;
+}
+
+.config-card-head small {
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+
 .config-card-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: end;
   gap: 12px;
+  min-width: 0;
 }
 
 .coverage-grid {
@@ -368,6 +381,7 @@ button {
   align-items: center;
   gap: 12px;
   flex: 1;
+  min-width: 0;
 }
 
 .field {
@@ -429,6 +443,8 @@ button {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  justify-content: flex-end;
 }
 
 .view-switch {
@@ -502,7 +518,7 @@ button {
 }
 
 .content-grid {
-  grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.9fr);
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
   align-items: start;
 }
 
@@ -574,10 +590,12 @@ textarea {
 .console-pane {
   display: grid;
   gap: 18px;
+  min-width: 0;
 }
 
 .console-pane {
   margin-top: 56px;
+  width: 100%;
 }
 
 .section-heading {
@@ -585,6 +603,7 @@ textarea {
   justify-content: space-between;
   gap: 20px;
   align-items: end;
+  min-width: 0;
 }
 
 .section-heading > div:first-child {
@@ -1146,6 +1165,59 @@ body[data-view-mode="playbook"] .module-actions .compact {
 .console-card,
 .history-card {
   padding: 20px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.insight-card {
+  gap: 16px;
+  min-width: 0;
+}
+
+.insight-panel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  min-width: 0;
+}
+
+.insight-panel[data-insight-panel="console"] {
+  min-width: 0;
+}
+
+.insight-card > .console-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 0;
+}
+
+.panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel-tab {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.52);
+  color: var(--text);
+  padding: 9px 14px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: transform 140ms ease, background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.panel-tab.is-active {
+  background: linear-gradient(180deg, #3a95d8, #257aba);
+  border-color: rgba(47, 134, 199, 0.36);
+  color: #fff;
+  box-shadow: 0 12px 24px rgba(47, 134, 199, 0.18);
 }
 
 .console-card,
@@ -1167,6 +1239,7 @@ body[data-view-mode="playbook"] .module-actions .compact {
 .console-card-title {
   display: grid;
   gap: 4px;
+  min-width: 0;
 }
 
 .console-card-title span {
@@ -1203,14 +1276,18 @@ body[data-view-mode="playbook"] .module-actions .compact {
   font-size: 1.1rem;
 }
 
-.console-card pre {
+#consoleOutput {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-inline-size: 100%;
   min-height: 260px;
-  max-height: 70vh;
+  height: 420px;
   margin: 0;
   padding: 20px;
   resize: vertical;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
   border: 1px solid var(--line);
   border-radius: 20px;
   background: #f7fbff;
@@ -1218,12 +1295,22 @@ body[data-view-mode="playbook"] .module-actions .compact {
   font-family: var(--mono);
   font-size: 0.95rem;
   line-height: 1.6;
-  white-space: pre-wrap;
+  white-space: break-spaces;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-[data-theme="dark"] .console-card pre {
+[data-theme="dark"] #consoleOutput {
   background: #08131f;
   color: #e9f1fa;
+}
+
+#consoleOutput,
+.evidence-list,
+.timeline-list {
+  min-height: 260px;
+  resize: vertical;
+  overflow: auto;
 }
 
 .job-list,
@@ -1231,7 +1318,8 @@ body[data-view-mode="playbook"] .module-actions .compact {
 .timeline-list {
   display: grid;
   gap: 10px;
-  max-height: 220px;
+  width: 100%;
+  min-width: 0;
   padding: 14px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -1241,25 +1329,24 @@ body[data-view-mode="playbook"] .module-actions .compact {
   scrollbar-gutter: stable;
 }
 
-.evidence-list {
-  min-height: 220px;
-  max-height: 70vh;
-  resize: vertical;
-  overflow: auto;
-}
-
-.timeline-list {
-  min-height: 220px;
-  max-height: 70vh;
-  resize: vertical;
-  overflow: auto;
-}
-
 [data-theme="dark"] .job-list,
 [data-theme="dark"] .evidence-list,
 [data-theme="dark"] .timeline-list {
   background: #08131f;
 }
+
+[data-theme="dark"] .panel-tab {
+  background: #162131;
+  border-color: rgba(152, 177, 214, 0.14);
+  color: #dbe8f8;
+}
+
+[data-theme="dark"] .panel-tab.is-active {
+  background: linear-gradient(180deg, #5aa5e6, #377cc0);
+  border-color: rgba(138, 192, 241, 0.28);
+  color: #fff;
+}
+
 
 .job-item,
 .evidence-item,
@@ -1267,6 +1354,7 @@ body[data-view-mode="playbook"] .module-actions .compact {
   display: grid;
   gap: 4px;
   width: 100%;
+  min-width: 0;
   padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -1285,6 +1373,7 @@ body[data-view-mode="playbook"] .module-actions .compact {
   display: grid;
   gap: 6px;
   cursor: pointer;
+  min-width: 0;
 }
 
 .job-item-profile-row {
@@ -1731,15 +1820,20 @@ body[data-view-mode="playbook"] .module-actions .compact {
     font-size: 1.45rem;
   }
 
-  .console-card pre {
+  #consoleOutput {
+    min-height: 220px;
     height: 220px;
     font-size: 0.88rem;
+  }
+
+  .evidence-list,
+  .timeline-list {
+    min-height: 220px;
   }
 
   .job-list,
   .evidence-list,
   .timeline-list {
-    max-height: 180px;
     padding: 12px;
   }
 

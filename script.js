@@ -9,11 +9,93 @@ const state = {
   selectedPhase: "all",
   viewMode: "playbook",
   moduleExecutionProfile: "fast",
-  moduleSearchQuery: ""
+  moduleSearchQuery: "",
+  insightTab: "console",
+  consoleHeightLocked: false
 };
 
 const $ = (selector) => document.querySelector(selector);
 const LAST_TARGET_STORAGE_KEY = "lab-console-last-target-ip";
+const CONSOLE_MIN_HEIGHT = 260;
+
+function clampConsoleHeight(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return CONSOLE_MIN_HEIGHT;
+  return Math.max(CONSOLE_MIN_HEIGHT, Math.round(numericValue));
+}
+
+function insightScrollPanels() {
+  return ["#consoleOutput", "#timelineList", "#evidenceList"]
+    .map((selector) => $(selector))
+    .filter(Boolean);
+}
+
+function activeInsightScrollPanel() {
+  if (state.insightTab === "timeline") return $("#timelineList");
+  if (state.insightTab === "evidence") return $("#evidenceList");
+  return $("#consoleOutput");
+}
+
+function applyInsightPanelHeight(value) {
+  const height = clampConsoleHeight(value);
+  insightScrollPanels().forEach((panel) => {
+    panel.style.height = `${height}px`;
+  });
+}
+
+function persistConsoleHeight() {
+  const activePanel = activeInsightScrollPanel();
+  if (!activePanel) return;
+  state.consoleHeightLocked = true;
+  applyInsightPanelHeight(activePanel.getBoundingClientRect().height);
+}
+
+function syncConsoleHeightToModulePane({ force = false } = {}) {
+  const activePanel = activeInsightScrollPanel();
+  const modulePane = document.querySelector(".module-pane");
+  const insightCard = document.querySelector(".insight-card");
+  if (!activePanel || !modulePane || !insightCard) return;
+
+  if (state.consoleHeightLocked && !force) {
+    return;
+  }
+
+  const activePanelRect = activePanel.getBoundingClientRect();
+  const modulePaneRect = modulePane.getBoundingClientRect();
+  const insightCardRect = insightCard.getBoundingClientRect();
+  const desiredHeight = activePanelRect.height + (modulePaneRect.bottom - insightCardRect.bottom);
+  applyInsightPanelHeight(desiredHeight);
+}
+
+function queueConsoleHeightSync(options = {}) {
+  window.requestAnimationFrame(() => syncConsoleHeightToModulePane(options));
+}
+
+function bindConsoleResizeHandle() {
+  let resizeIntent = false;
+  const armResize = (event) => {
+    const target = event.currentTarget;
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    resizeIntent = rect.bottom - event.clientY <= 28;
+  };
+  const commitResize = () => {
+    if (!resizeIntent) return;
+    resizeIntent = false;
+    persistConsoleHeight();
+  };
+
+  insightScrollPanels().forEach((panel) => {
+    panel.addEventListener("pointerdown", armResize);
+  });
+  window.addEventListener("pointerup", commitResize);
+  window.addEventListener("mouseup", commitResize);
+  window.addEventListener("resize", () => {
+    if (!state.consoleHeightLocked) {
+      queueConsoleHeightSync();
+    }
+  });
+}
 
 function showToast(message) {
   const toast = $("#toast");
@@ -22,6 +104,16 @@ function showToast(message) {
   toast.classList.add("show");
   window.clearTimeout(showToast.timer);
   showToast.timer = window.setTimeout(() => toast.classList.remove("show"), 2200);
+}
+
+function renderInsightTabs() {
+  document.querySelectorAll("[data-insight-tab]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.insightTab === state.insightTab);
+  });
+  document.querySelectorAll("[data-insight-panel]").forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.insightPanel !== state.insightTab);
+  });
+  queueConsoleHeightSync();
 }
 
 function requestRangePassword() {
@@ -499,6 +591,7 @@ function renderModules() {
           <p class="empty-jobs">Tidak ada modul yang cocok dengan pencarian.</p>
         </section>
       `;
+      queueConsoleHeightSync();
       return;
     }
 
@@ -513,6 +606,7 @@ function renderModules() {
         </div>
       </section>
     `).join("");
+    queueConsoleHeightSync();
     return;
   }
 
@@ -520,6 +614,7 @@ function renderModules() {
 
   if (!active) {
     container.innerHTML = `<p class="empty-jobs">Tidak ada modul pada tahapan yang dipilih.</p>`;
+    queueConsoleHeightSync();
     return;
   }
 
@@ -531,6 +626,7 @@ function renderModules() {
         <p class="empty-jobs">Tidak ada modul yang cocok dengan pencarian pada fase ini.</p>
       </section>
     `;
+    queueConsoleHeightSync();
     return;
   }
   container.innerHTML = `
@@ -540,6 +636,7 @@ function renderModules() {
       </div>
     </section>
   `;
+  queueConsoleHeightSync();
 }
 
 function renderJobs() {
@@ -677,12 +774,58 @@ function renderSeveritySummary(summary = {}) {
     .join("");
 }
 
+function summarizeEvidenceBySeverity(evidence = []) {
+  const summary = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+  for (const item of evidence) {
+    const severity = String(item?.severity || "info").toLowerCase();
+    if (!(severity in summary)) {
+      summary.info += 1;
+      continue;
+    }
+    summary[severity] += 1;
+  }
+  return summary;
+}
+
 function moduleById(moduleId) {
   return state.modules.find((item) => item.id === moduleId) || null;
 }
 
 function severityRank(key) {
   return { critical: 4, high: 3, medium: 2, low: 1, info: 0 }[String(key || "info").toLowerCase()] ?? 0;
+}
+
+function resolveVisibleEvidence(job) {
+  let evidenceJob = job;
+  let evidence = (job?.evidence || []).slice();
+
+  if (!evidence.length) {
+    const fallbackJob = (state.jobs || [])
+      .filter((entry) => entry?.id !== job?.id && evidenceCount(entry) > 0)
+      .sort((a, b) => {
+        const evidenceDelta = evidenceCount(b) - evidenceCount(a);
+        if (evidenceDelta !== 0) return evidenceDelta;
+        return compareJobFreshness(a, b);
+      })[0];
+    if (fallbackJob) {
+      evidenceJob = fallbackJob;
+      evidence = (fallbackJob.evidence || []).slice();
+    }
+  }
+
+  evidence = evidence.sort((a, b) => {
+    const severityDelta = severityRank(b?.severity) - severityRank(a?.severity);
+    if (severityDelta !== 0) return severityDelta;
+    const aTime = new Date(a?.collected_at || 0).getTime();
+    const bTime = new Date(b?.collected_at || 0).getTime();
+    return bTime - aTime;
+  });
+
+  return {
+    evidenceJob,
+    evidence,
+    severitySummary: summarizeEvidenceBySeverity(evidence)
+  };
 }
 
 function evidenceArtifactHighlights(item) {
@@ -1290,33 +1433,11 @@ function renderTimeline(job) {
   `).join("");
 }
 
-function renderEvidence(job) {
+function renderEvidence(job, resolved = resolveVisibleEvidence(job)) {
   const container = $("#evidenceList");
   const label = $("#evidenceCountLabel");
-  let evidenceJob = job;
-  let evidence = (job?.evidence || []).slice();
-
-  if (!evidence.length) {
-    const fallbackJob = (state.jobs || [])
-      .filter((entry) => entry?.id !== job?.id && evidenceCount(entry) > 0)
-      .sort((a, b) => {
-        const evidenceDelta = evidenceCount(b) - evidenceCount(a);
-        if (evidenceDelta !== 0) return evidenceDelta;
-        return compareJobFreshness(a, b);
-      })[0];
-    if (fallbackJob) {
-      evidenceJob = fallbackJob;
-      evidence = (fallbackJob.evidence || []).slice();
-    }
-  }
-
-  evidence = evidence.sort((a, b) => {
-    const severityDelta = severityRank(b?.severity) - severityRank(a?.severity);
-    if (severityDelta !== 0) return severityDelta;
-    const aTime = new Date(a?.collected_at || 0).getTime();
-    const bTime = new Date(b?.collected_at || 0).getTime();
-    return bTime - aTime;
-  });
+  const evidenceJob = resolved?.evidenceJob || job;
+  const evidence = Array.isArray(resolved?.evidence) ? resolved.evidence : [];
   label.textContent = `${evidence.length} items`;
 
   if (!evidence.length) {
@@ -1429,9 +1550,10 @@ function renderConsole(job) {
   if (commandLabel) commandLabel.textContent = currentCommand(job);
   output.textContent = logLines(job.logs) || "Job belum memiliki log.";
   output.scrollTop = output.scrollHeight;
-  renderSeveritySummary(job.severity_summary);
+  const resolvedEvidence = resolveVisibleEvidence(job);
+  renderSeveritySummary(resolvedEvidence.severitySummary);
   renderTimeline(job);
-  renderEvidence(job);
+  renderEvidence(job, resolvedEvidence);
   renderJobProgress(job);
   setConsoleStatus(job.status, job.status);
 }
@@ -1737,9 +1859,16 @@ function bindEvents() {
     setViewMode("playbook");
     renderModules();
   });
+  $("#insightTabs").addEventListener("click", (event) => {
+    const button = event.target.closest("[data-insight-tab]");
+    if (!button) return;
+    state.insightTab = button.dataset.insightTab || "console";
+    renderInsightTabs();
+  });
   $("#detailViewBtn").addEventListener("click", () => {
     setViewMode("detail");
     renderModules();
+    renderInsightTabs();
   });
   $("#refreshJobsBtn").addEventListener("click", async () => {
     await loadJobs();
@@ -1783,10 +1912,13 @@ async function init() {
   setModuleExecutionProfile("fast");
   syncModuleProfileSelect();
   bindEvents();
+  bindConsoleResizeHandle();
   try {
-    await loadConfig();
-    await loadModules();
-    await loadJobs();
+  await loadConfig();
+  await loadModules();
+  await loadJobs();
+  renderInsightTabs();
+  queueConsoleHeightSync();
     if (state.activeJobId) {
       await loadJob(state.activeJobId);
     } else {
