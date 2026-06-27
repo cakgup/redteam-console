@@ -177,7 +177,7 @@ Untuk menghentikan backend:
 ### Opsi 2: langsung dari terminal WSL
 
 ```bash
-cd /mnt/c/Users/gufroni/Documents/GitHub/redteam-console
+cd /mnt/c/Users/user/Documents/GitHub/redteam-console
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
